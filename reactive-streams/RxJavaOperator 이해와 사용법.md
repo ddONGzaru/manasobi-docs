@@ -699,6 +699,24 @@ merge와 닮아있다만, 차이점은 Observable로부터 stream에 흘려보�
 ![alt](https://qiita-image-store.s3.amazonaws.com/0/59803/00347a77-cdaa-ca76-5815-5b4cda6832bb.png)
 
 ## 7.3 startWith
+iterator나 Observable을 넘기는 것이 가능하다. 그것을 선두에 두고 시작한다. concat과 유사하며, 같은 사용법을 적용할 수 있다.
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/59803/2a5da9f4-d611-efe5-b29f-230425dc8cfc.png)
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/59803/28b394fc-3e79-975b-2012-80fae77d524d.png)
+
+## 7.4 combineLatest
+2개의 스트림이 경쟁하는 모양이지만, 스트림을 가지거나 하지는 않는다.
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/59803/3c422251-9b12-2982-99b6-bb215a38b358.png)
+
+## 7.5 zip
+2개 이상의 Observable로부터 흘러들어온 값을 합성시켜 새로운 하나의 값을 만들어낸다.
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/59803/f7e91eac-c151-774b-df02-e52b665474a6.png)
+
+
+
 
 
 
