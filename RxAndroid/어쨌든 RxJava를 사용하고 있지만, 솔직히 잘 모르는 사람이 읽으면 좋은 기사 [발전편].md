@@ -20,6 +20,12 @@
 > Hot >>> subscribe 되지 않고도 값을 emit 함.<br>
 Cold >>> subscribe()가 호출될때까지 emit 하지않음. subscribe()마다 새로운 값을 emit함.
 
+#### [Observableは友達](http://chooblarin.com/observable_is_my_friend.html)
+즉 [Subscriber에 요구될때까지 값을 발행하지 않는 수동적인 Observalble(stream)은 **_Cold_**], [계속 값을 뱉어내는 능동적인 Observalble은 **_Hot_**]이라고 할 수 있다.
+
+이러한 Hot한 Observalble은 지금까지의 Cold한 Observalble과는 별개의 취급이나 주의가 필요해 보인다.
+
+
 
 
     
