@@ -207,8 +207,208 @@ public interface PostExecutionThread {
 ```
 
 ## UseCase
+`exchange` 패키지 내에 `usecase` 패키지를 작성. `usecase`에는 비지니스 로직을 넣어둔다.<br>
+`ExchangeRateRepository`을 사용하기 위한 유스케이스 `GetExchangeRate`을 추가.
 
+여기까지해서 `data` 패키지의 소스들은 전부 완성.
 
+#### GetExchangeRate
+```java
+public class GetExchangeRate extends UseCase<ExchangeRateResponse> {
+
+    private final ExchangeRateRepository mExchangeRateRepository;
+
+    @Inject
+    protected GetExchangeRate(Executor threadExecutor, 
+        PostExecutionThread postExecutionThread, 
+        ExchangeRateRepository exchangeRateRepository) {
+        super(threadExecutor, postExecutionThread);
+        this.mExchangeRateRepository = exchangeRateRepository;
+    }
+
+    public Observable<ExchangeRateResponse> execute(
+        String base, String symbols) {
+        return bindUIThread(
+            mExchangeRateRepository.getExchangeRate(base, symbols));
+    }
+}
+```
+
+통신결과를 메인 쓰레드에서 수신할 수 있도록 di 패키지를 작성하고 UIThread를 작성.
+
+#### UIThread
+```java
+@Singleton
+/* package */ class UIThread implements PostExecutionThread {
+
+    @Inject
+    public UIThread() {
+    }
+
+    @Override
+    public Scheduler getScheduler() {
+        // RxのメソッドでMainスレッドを取得することができる
+        return AndroidSchedulers.mainThread();
+    }
+}
+```
+
+`Executor`를 계승한 `JobExecutor`를 작성. 아래 URL의 Executor 클래스를 그대로 복붙해서 사용했다.<br>
+[https://github.com/android10/Android-CleanArchitecture/blob/master/data/src/main/java/com/fernandocejas/android10/sample/data/executor/JobExecutor.java](https://github.com/android10/Android-CleanArchitecture/blob/master/data/src/main/java/com/fernandocejas/android10/sample/data/executor/JobExecutor.java)
+
+#### JobExecutor
+```java
+@Singleton
+public class JobExecutor implements Executor {
+
+    private static final int INITIAL_POOL_SIZE = 3;
+    private static final int MAX_POOL_SIZE = 5;
+
+    // Sets the amount of time an idle thread waits before terminating
+    private static final int KEEP_ALIVE_TIME = 10;
+
+    // Sets the Time Unit to seconds
+    private static final TimeUnit KEEP_ALIVE_TIME_UNIT = TimeUnit.SECONDS;
+
+    private final BlockingQueue<Runnable> workQueue;
+
+    private final ThreadPoolExecutor threadPoolExecutor;
+
+    private final ThreadFactory threadFactory;
+
+    @Inject
+    public JobExecutor() {
+        this.workQueue = new LinkedBlockingQueue<>();
+        this.threadFactory = new JobThreadFactory();
+        this.threadPoolExecutor = 
+            new ThreadPoolExecutor(INITIAL_POOL_SIZE, MAX_POOL_SIZE,
+                KEEP_ALIVE_TIME, KEEP_ALIVE_TIME_UNIT, 
+                this.workQueue, this.threadFactory);
+    }
+
+    @Override public void execute(Runnable runnable) {
+        if (runnable == null) {
+            throw new IllegalArgumentException("Runnable to execute cannot be null");
+        }
+        this.threadPoolExecutor.execute(runnable);
+    }
+
+    private static class JobThreadFactory implements ThreadFactory {
+        private static final String THREAD_NAME = "android_";
+        private int counter = 0;
+
+        @Override public Thread newThread(Runnable runnable) {
+            return new Thread(runnable, THREAD_NAME + counter++);
+        }
+    }
+}
+```
+
+`ExchangeRepositoryModule`을 제공하는 `RepositoryModule`을 작성
+
+#### RepositoryModule
+```java
+@Module(includes = {ExchangeRepositoryModule.class})
+public class RepositoryModule {
+
+    @Provides
+    @Singleton
+    public PostExecutionThread providePostExecutionThread(UIThread uiThread) {
+        return uiThread;
+    }
+
+    @Provides
+    @Singleton
+    public Executor provideExecutor(JobExecutor jobExecutor) {
+        return jobExecutor;
+    }
+}
+```
+
+`RepositoryModule`을 사용해서 통신하는 `ApiModule`을 작성
+
+#### ApiModule
+```java
+@Module(includes = {RepositoryModule.class})
+public class ApiModule {
+
+    @Provides
+    @Singleton
+    Gson provideGson() {
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        return gsonBuilder.create();
+    }
+
+    @Provides
+    @Singleton
+    OkHttpClient provideOkhttpClient() {
+        OkHttpClient.Builder client = new OkHttpClient.Builder();
+        client.addInterceptor(
+            new HttpLoggingInterceptor().setLevel(
+                    HttpLoggingInterceptor.Level.BODY));
+        return client.build();
+    }
+
+    @Provides
+    @Singleton
+    Retrofit provideRetrofit(Gson gson, OkHttpClient okHttpClient) {
+        return new Retrofit.Builder()
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
+                // ベースのURLの設定
+                .baseUrl("http://api.fixer.io")
+                .client(okHttpClient)
+                .build();
+    }
+}
+```
+
+모듈과 인터페이스를 합성한 `AppComponent` 작성.
+
+#### AppComponent
+```java
+@Singleton
+@Component(modules = {ApiModule.class})
+public interface AppComponent {
+
+    ExchangeRateRepository exchangeRateRepository();
+
+    Executor executor();
+
+    PostExecutionThread postExecutionThread();
+}
+```
+
+Inject할 때 사용하는 커스텀 어노테이션을 작성. 스코프는 Activity가 살아있을때까지로 함.
+
+#### PerActivity
+```java
+@Scope
+@Retention(RetentionPolicy.RUNTIME)
+public @interface PerActivity {}
+```
+
+`Application`클래스를 상속한 `AppApplication`을 작성.<br>
+`Activity`, `Fragment`등에서 `getAppComponet()`를 통해 `AppComponent`를 취득해, Inject함.
+
+#### AppApplication
+```java
+public class AppApplication extends Application {
+
+    private AppComponent mAppComponent;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        mAppComponent = DaggerAppComponent.builder().build();
+    }
+
+    public AppComponent getAppComponent() {
+        return mAppComponent;
+    }
+}
+```
 
 
 
