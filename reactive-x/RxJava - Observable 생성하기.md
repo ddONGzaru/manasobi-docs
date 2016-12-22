@@ -83,7 +83,7 @@ onNext: 0
 onCompleted
 ```
 
-## Observable.fromCallable()
+## 3. Observable.fromCallable()
 파라미터로 Callable을 갖는다. defer와 마찬가지로 구독이 발생할 때 Callable의 call() 함수가 호출되는 지연 초기화를 위한 함수다.
 
 ![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/wYNH3jc6pcC9ShUwQkJDjFkFC6c.png)
@@ -119,3 +119,30 @@ Create an observable :: 064fd4f9-8170-4d27-9595-fbe1f92e57f4
 onNext: 064fd4f9-8170-4d27-9595-fbe1f92e57f4
 onCompleted
 ```
+
+## 4. Observable.interval()
+특정 시간 간격을 주기로 0부터 증가하는 정수 값을 발행한다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/QOSiSd5zNd5illhozPh_7xpt2tk.png)
+
+```java
+Observable<Long> observable = Observable.interval(1, TimeUnit.SECONDS);
+
+observable
+    .take(3)
+    .subscribe(
+        i -> log.info("onNext: {}", String.valueOf(i)),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+
+```
+16:48:23.465 [RxComputationScheduler-1] INFO Observable_interval - onNext: 0
+16:48:24.462 [RxComputationScheduler-1] INFO Observable_interval - onNext: 1
+16:48:25.462 [RxComputationScheduler-1] INFO Observable_interval - onNext: 2
+16:48:25.462 [RxComputationScheduler-1] INFO Observable_interval - onCompleted
+```
+
