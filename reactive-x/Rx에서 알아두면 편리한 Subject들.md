@@ -216,5 +216,6 @@ public HogeActivity extends RxActivity {
 
 ```java
 PublishSubject<Data> subject = PublishSubject.create();
-SerializedSubject<Data, Data> serializedSubject = new SerializedSubject(subject);
+SerializedSubject<Data, Data> serializedSubject = 
+    new SerializedSubject(subject);
 ```
