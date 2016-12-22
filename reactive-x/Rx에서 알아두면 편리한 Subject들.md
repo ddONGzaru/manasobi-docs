@@ -144,5 +144,77 @@ return new Observable.Transformer<T, T>() {
 
 `lifecycle`은 대상 Activity의 라이브사이클 상태가 흘러들어오는 **BehavorSubject**이다.
 
-코드를 보면 `lifecycle.take(1).map(correspondingEvents)`에서 바인드한 라이프사이클에 대해 종료 이벤트를 취득하고, `lifecycle.skip(1)`와 `combineLatest`로 연결하는 것으로 `lifecycle`에 
+코드를 보면 `lifecycle.take(1).map(correspondingEvents)`에서 바인드한 라이프사이클에 대해 종료 이벤트를 취득하고, `lifecycle.skip(1)`와 `combineLatest`로 연결하는 것으로 `lifecycle`에 새로운 값이 흘러 들어올때마다 평가가 수행된다.
 
+이 평가에서, 종료 이벤트와 다음 이벤트가 같은(종료 라이프사이클에 도달한) 때에 `takeUntil`에서 원래의 Observable을 도중에서 멈추고 있다.
+
+이 라이프사이클 이벤트의 스트림으로써 BehavorSubject가 사용되고 있다. 전 상태를 캐쉬해서 주고 있기 때문에, subscribe때에 직전에 일어났던 이벤트를 취득할 수 있게되는 것이다.(onCreate부터 onStart 사이에 `bindToLifecycle`한 경우에는 `lifecycle`에 onCreate의 이벤트가 캐쉬되고 있음)
+
+## PublishObject 
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/29459/4d085045-e2e8-b7e3-50de-d31c700e60bf.png)
+
+Subject 중에서 가장 동작에 대한 이해가 쉬운것이 Subject이다. Subject에의 `onNext`, `onError`, `onSuccessed` 모든 호출이, Subscriber 측의 같은 메소드에 그대로 전파한다. 일반 리스너와 같은 구동을 한다고 할 수 있다.
+
+#### 사용 예
+상기에서 언급한 것처럼 리스너 계열의 구조를 Rx를 사용해서 구현하려고 할 때 사용한다. 예를 들어, ArrayAdapter등에서 리스너를 정의할 때에 클릭 이벤트를 원래 Activity, Fragment에 반환하는 동작을 구현해 본다.
+
+`HogeAdapter.java`
+```java
+public PublishSubject<Integer> clickObservable = PublishSubject.create();
+
+@Override
+public View getView(int position, View view, ViewGroup parent) {
+    ViewHolder holder;
+    if (view == null) {
+        view = inflater.inflate(R.layout.view_list_item_hoge, null);
+        holder = new ViewHolder(view);
+        view.setTag(holder);
+    } else {
+        holder = (ViewHolder) view.getTag();
+    }
+
+    Item item = getItem(position);
+    holder.text.setText(item.getData());
+    view.setOnClickListener(v -> clickObservable.onNext(history));
+    return view;
+}
+```
+
+`HogeActivity.java`
+```java
+public HogeActivity extends RxActivity {
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_hoge);
+
+        // ここでダイアログを表示させる
+        ListView list = (ListView) findViewById(R.id.list_hoge);
+        HogeAdapter adapter = new HogeAdapter();
+        adapter.clickObservable
+            .compose(bindToLifecycle())
+            .subscribe(position -> {
+            // position番目の要素がクリックされた時の動作
+        });
+    }
+}
+```
+이것으로 HogeActivity측에서 클릭된 포지션의 이벤트를 취득하는 것이 가능하다.
+
+## ReplaySubject
+
+![alt](https://qiita-image-store.s3.amazonaws.com/0/29459/7d159981-6940-cf30-9634-30bcc130d6f5.png)
+
+큰 특징은 `subscribe()`한 후에 Subject에 지금까지 `onNext`에서 발행된 값이 전부 들어온다는 것이다. 지금까지의 데이터가 모두 흘러들오온 후의 동작은 PublishObject와 같다.
+
+#### 사용 예
+원래 데이터로부터 차분을 Observable에 흐르게 하는 구조와 상성이 맞는것 같다. 또, `skip`하면 임의의 장소의 값을 취득하는 부분을 활용하면 List 대신으로도 사용할 수 있다.
+
+## SerializedSubject
+지금까지의 Subject는 모두 Subject측의 `on****` 메소드를 같은 쓰레드로부터 호출할 필요가 있었다. 만약, 복수의 쓰레드로부터 `on****`가 호출되는 경우에는 이 SerializedSubject로 래핑해서 던져줄 필요가 있다.
+
+```java
+PublishSubject<Data> subject = PublishSubject.create();
+SerializedSubject<Data, Data> serializedSubject = new SerializedSubject(subject);
+```
