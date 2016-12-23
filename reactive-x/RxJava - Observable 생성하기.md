@@ -146,3 +146,187 @@ observable
 16:48:25.462 [RxComputationScheduler-1] INFO Observable_interval - onCompleted
 ```
 
+## 5. Observable.range()
+특정 범위 내의 정수 값을 순차적으로 발행하는 옵저버블을 생성한다. 파라미터로 시작 값과 개수를 갖는다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/FTr_1rfWuGpY1a-xMGFeRi587UA.png)
+
+```java
+Observable<Integer> observable = Observable.range(1, 3);
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onNext: 1
+onNext: 2
+onNext: 3
+onCompleted
+```
+
+## 6. Observable.repeat()
+아이템을 N번 발행한다. 파라미터로 아무것도 넘기지 않으면 아이템을 무한히 발행한다. 스케줄러로 trampoline을 사용하고, 변경 가능하다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/xZ8p45NU4ZMhmHAT3oICA60sKPM.png)
+
+```java
+Observable<Integer> observable = Observable.just(0).repeat(3);
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onNext: 0
+onNext: 0
+onNext: 0
+onCompleted
+```
+
+## 7. Observable.timer()
+특정 시간 이후에 숫자 0을 발행한다. 스케쥴러로 computation을 사용하고, 변경 가능하다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/n8A97GME720h7RpXJ5L08rympg0.png)
+
+```java
+log.info("start...");
+
+Observable<Long> observable = Observable.timer(2, TimeUnit.SECONDS);
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+10:08:47.607 start...
+10:08:49.680 onNext: 0
+10:08:49.684 onCompleted
+```
+
+## 8. Observable.just()
+just()함수는 파라미터로 주어진 아이템을 옵저버블로 발행한다. 샘플 코드처럼 기존 함수의 반환 값을 옵저버블로 변환할 때 사용할 수 도 있다. 1~10개까지의 아이템을 발행할 수 있도록 함수 오버로딩 되었다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/JgfY4ZK9sTox8xZZunh0uKwk7S8.png)
+
+```java
+Observable<String> observable = Observable.just("A", "B", "C");
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onNext: A
+onNext: B
+onNext: C
+onCompleted
+```
+
+## 9. Observable.from()
+이터러블, 배열의 아이템을 순차적으로 발행하는 옵저버블을 생성한다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/GOJCxhYI8AGaYM5HT2kX3sV9DWU.png)
+
+```java
+Observable<Integer> observable = Observable.from(Arrays.asList(1, 2, 3));
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onNext: 1
+onNext: 2
+onNext: 3
+onCompleted
+```
+
+## 10. Observable.empty()
+아무런 아이템을 발행하지 않고, 완료를 발행하는 옵저버블을 생성한다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/zvRmPa8FL-JKzW2P1VfP_9Gr7ec.png)
+
+```java
+Observable<Integer> observable = Observable.empty();
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onCompleted
+```
+
+## 11. Observable.never()
+아무런 아이템도 발행하지 않고, 완료도 발행하지 않는 옵저버블을 생성한다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/pzm0qJ7y_eDuX3ZXmqyL0_BVHh0.png)
+
+```java
+Observable<Integer> observable = Observable.never();
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+아무것도 출력되지 않음
+```
+
+## 12. Observable.throw()
+에러를 발행하는 옵저버블을 생성한다.
+
+![alt](https://t1.daumcdn.net/thumb/R1280x0/?fname=http://t1.daumcdn.net/brunch/service/user/SQo/image/XHVz3vmH7PP4S4pEBxKTcr0NzC4.png)
+
+```java
+Observable<Integer> observable = Observable.error(new Exception("RX 에러"));
+
+observable
+    .subscribe(
+        i -> log.info("onNext: {}", i),
+        e -> log.info("onError: {}", e.getMessage()),
+        () -> log.info("onCompleted")
+    );
+```
+
+`실행결과`
+```
+onError: RX 에러
+```
+
